@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ASUS Linux Tools Installation Script for Linux Mint 22.1+
-# Version: 22.1.1
+# Version: 22.1.2
 # 
 # This script installs the latest versions of asusctl and supergfxctl for ASUS laptops.
 # It will also configure the systemd services to start on boot.
@@ -13,10 +13,10 @@
 # - ASUS ROG/TUF laptop with supported hardware
 # 
 # Usage:
-#   curl -sSL https://raw.githubusercontent.com/andreas-glaser/asus-linux-mint/v22.1.1/install-asus-linux.sh | bash
+#   curl -sSL https://raw.githubusercontent.com/andreas-glaser/asus-linux-mint/v22.1.2/install-asus-linux.sh | bash
 #   
 #   Or download and run locally:
-#   wget https://raw.githubusercontent.com/andreas-glaser/asus-linux-mint/v22.1.1/install-asus-linux.sh
+#   wget https://raw.githubusercontent.com/andreas-glaser/asus-linux-mint/v22.1.2/install-asus-linux.sh
 #   chmod +x install-asus-linux.sh
 #   ./install-asus-linux.sh
 # 
@@ -28,7 +28,7 @@
 set -euo pipefail
 
 # Script configuration
-SCRIPT_VERSION="22.1.1"
+SCRIPT_VERSION="22.1.2"
 MIN_MINT_VERSION="22.1"
 MIN_KERNEL_VERSION="6.1"
 
