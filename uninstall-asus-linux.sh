@@ -60,6 +60,7 @@ confirm_uninstall() {
     echo "  • All systemd services (asusd, supergfxd, asusd-user)"
     echo "  • Configuration files and udev rules"
     echo "  • Desktop files and icons"
+    echo "  • Nouveau driver blacklist (optional)"
     echo "  • Build directories (optional)"
     echo
     print_warning "Your laptop will lose ASUS-specific hardware control features."
@@ -181,6 +182,41 @@ remove_config_files() {
             print_status "✓ Removed $data_dir"
         fi
     done
+}
+
+# Remove nouveau blacklist configuration
+remove_nouveau_blacklist() {
+    print_status "Checking for nouveau blacklist configuration..."
+    
+    local blacklist_file="/etc/modprobe.d/blacklist-nouveau.conf"
+    
+    if [ -f "$blacklist_file" ]; then
+        print_warning "Nouveau blacklist configuration found: $blacklist_file"
+        print_warning "This file blacklists the nouveau driver to allow NVIDIA proprietary drivers."
+        echo
+        read -p "Remove nouveau blacklist configuration? (y/N): " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            # Show current contents before removal
+            print_status "Current contents of $blacklist_file:"
+            sudo cat "$blacklist_file" | sed 's/^/    /' || true
+            
+            # Remove the blacklist file
+            sudo rm -f "$blacklist_file"
+            print_status "✓ Removed $blacklist_file"
+            
+            # Update initramfs to apply the changes
+            print_status "Updating initramfs to apply nouveau blacklist removal..."
+            sudo update-initramfs -u
+            
+            print_warning "IMPORTANT: A reboot will be required for the nouveau blacklist removal to take effect."
+            print_warning "After reboot, the nouveau driver will be available again (if installed)."
+        else
+            print_status "Nouveau blacklist configuration preserved."
+        fi
+    else
+        print_status "✓ No nouveau blacklist configuration found."
+    fi
 }
 
 # Remove desktop files and icons
@@ -321,12 +357,20 @@ show_completion() {
     echo "• All ASUS-related systemd services"
     echo "• Configuration files and udev rules"
     echo "• Desktop applications and icons"
+    echo "• Nouveau driver blacklist (if selected)"
     echo "• Build directories (if selected)"
+    echo
+    echo "=== WHAT WAS PRESERVED ==="
+    echo "• System firmware updates (via fwupd)"
+    echo "• Linux kernel (if upgraded during installation)"
+    echo "• System packages (linux-firmware, fwupd, build tools)"
+    echo "• Rust toolchain (if selected to preserve)"
     echo
     echo "=== IMPORTANT NOTES ==="
     echo "• Your ASUS laptop hardware controls are no longer available"
     echo "• GPU switching functionality has been removed"
     echo "• Fan curves, LED controls, and power profiles are disabled"
+    echo "• System firmware and kernel remain updated for optimal hardware support"
     echo "• You may need to reboot for all changes to take effect"
     echo
     print_warning "To reinstall, visit: https://github.com/andreas-glaser/asus-linux-mint"
@@ -350,6 +394,7 @@ main() {
     remove_binaries
     remove_service_files
     remove_config_files
+    remove_nouveau_blacklist
     remove_desktop_files
     remove_user_groups
     remove_build_dirs

@@ -32,6 +32,10 @@ SCRIPT_VERSION="22.1.1"
 MIN_MINT_VERSION="22.1"
 MIN_KERNEL_VERSION="6.1"
 
+# ASUS hardware support kernel requirements
+ASUS_MIN_KERNEL="6.1"           # Minimum for full ASUS hardware support
+ASUS_RECOMMENDED_KERNEL="6.11"  # Recommended for latest features
+
 # Set working directory (can be overridden with ASUS_BUILD_DIR environment variable)
 BASE_DIR="${ASUS_BUILD_DIR:-$HOME/.local/src/asus-linux}"
 
@@ -193,9 +197,155 @@ install_dependencies() {
         ninja-build \
         bc \
         curl \
-        wget
+        wget \
+        linux-firmware \
+        fwupd
         
     print_status "Build dependencies installed successfully."
+}
+
+# Install recent kernel for optimal ASUS hardware support
+install_recent_kernel() {
+    print_status "Checking kernel version for ASUS hardware compatibility..."
+    
+    # Get current kernel version
+    current_kernel=$(uname -r | cut -d. -f1,2)
+    print_status "Current kernel version: $current_kernel"
+    
+    # Use configurable kernel versions
+    local min_kernel="$ASUS_MIN_KERNEL"
+    local recommended_kernel="$ASUS_RECOMMENDED_KERNEL"
+    
+    # Check if current kernel meets minimum requirements
+    if command -v bc &> /dev/null && (( $(echo "$current_kernel < $min_kernel" | bc -l) )); then
+        print_warning "Kernel $current_kernel is below minimum recommended version $min_kernel for ASUS laptops."
+        
+        # Check if user wants to install a newer kernel
+        echo
+        print_warning "ASUS Linux tools require kernel $min_kernel+ for full functionality:"
+        echo "  • Fan curve control requires kernel 5.17+"
+        echo "  • TUF laptop support requires kernel 6.1+"
+        echo "  • Latest features require kernel $recommended_kernel+"
+        echo "  • GPU switching and power management improvements"
+        echo
+        read -p "Install newer kernel for better ASUS hardware support? (y/N): " -n 1 -r
+        echo
+        
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            print_status "Installing Hardware Enablement (HWE) kernel stack..."
+            
+            # Install HWE kernel for Linux Mint/Ubuntu
+            if sudo apt install -y linux-generic-hwe-22.04 linux-headers-generic-hwe-22.04 2>/dev/null; then
+                print_status "✓ HWE kernel stack installed successfully."
+                print_warning "IMPORTANT: Reboot required to use the new kernel."
+                
+                # Show what kernel will be available after reboot
+                latest_installed=$(dpkg -l | grep "linux-image-[0-9]" | grep -v "linux-image-generic" | sort -V | tail -1 | awk '{print $2}' | sed 's/linux-image-//')
+                if [ -n "$latest_installed" ]; then
+                    latest_version=$(echo "$latest_installed" | cut -d- -f1 | cut -d. -f1,2)
+                    print_status "New kernel version available after reboot: $latest_version"
+                fi
+            elif sudo apt install -y linux-generic linux-headers-generic 2>/dev/null; then
+                print_status "✓ Updated kernel stack installed successfully."
+                print_warning "IMPORTANT: Reboot required to use the new kernel."
+            else
+                print_warning "⚠ Could not install newer kernel automatically."
+                print_warning "Consider manually updating your kernel for optimal ASUS hardware support."
+                print_warning "You can continue with the current kernel, but some features may be limited."
+            fi
+        else
+            print_warning "Continuing with current kernel. Some ASUS features may be limited."
+        fi
+    elif command -v bc &> /dev/null && (( $(echo "$current_kernel < $recommended_kernel" | bc -l) )); then
+        print_status "✓ Kernel $current_kernel meets minimum requirements."
+        print_status "Note: Kernel $recommended_kernel+ is recommended for latest features."
+    else
+        print_status "✓ Kernel $current_kernel is up-to-date for ASUS hardware support."
+    fi
+}
+
+# Create nouveau blacklist configuration
+create_nouveau_blacklist() {
+    print_status "Creating nouveau driver blacklist configuration..."
+    
+    # Create the blacklist configuration file
+    local blacklist_file="/etc/modprobe.d/blacklist-nouveau.conf"
+    
+    # Check if file already exists
+    if [ -f "$blacklist_file" ]; then
+        print_warning "Blacklist file already exists: $blacklist_file"
+        read -p "Do you want to overwrite it? (y/N): " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            print_status "Skipping nouveau blacklist creation."
+            return 0
+        fi
+    fi
+    
+    # Create the blacklist file with proper content
+    sudo tee "$blacklist_file" > /dev/null << EOF
+blacklist nouveau
+options nouveau modeset=0
+EOF
+    
+    # Verify the file was created correctly
+    if [ -f "$blacklist_file" ]; then
+        print_status "✓ Created $blacklist_file"
+        print_status "  Contents:"
+        sudo cat "$blacklist_file" | sed 's/^/    /'
+        
+        # Update initramfs to apply the changes
+        print_status "Updating initramfs to apply nouveau blacklist..."
+        sudo update-initramfs -u
+        
+        print_warning "IMPORTANT: A reboot will be required for the nouveau blacklist to take effect."
+    else
+        print_error "Failed to create $blacklist_file"
+        return 1
+    fi
+}
+
+# Update system firmware
+update_firmware() {
+    print_status "Updating system firmware..."
+    print_status "This ensures ASUS laptop hardware compatibility and optimal performance."
+    
+    # Check if fwupd is available
+    if ! command -v fwupdmgr &> /dev/null; then
+        print_status "Installing fwupd firmware update utility..."
+        sudo apt install -y fwupd
+    fi
+    
+    # Refresh firmware metadata and update firmware
+    print_status "Refreshing firmware metadata..."
+    if sudo fwupdmgr refresh --force; then
+        print_status "✓ Firmware metadata refreshed successfully."
+        
+        print_status "Checking for firmware updates..."
+        if sudo fwupdmgr update; then
+            print_status "✓ Firmware updates completed successfully."
+            print_warning "IMPORTANT: Some firmware updates may require a reboot to take effect."
+        else
+            # fwupdmgr update returns non-zero when no updates are available
+            exit_code=$?
+            if [ $exit_code -eq 2 ]; then
+                print_status "✓ No firmware updates available - system is up to date."
+            else
+                print_warning "⚠ Firmware update process completed with warnings."
+                print_warning "This is often normal - some devices may not support firmware updates."
+            fi
+        fi
+    else
+        print_warning "⚠ Failed to refresh firmware metadata."
+        print_warning "Continuing installation - firmware updates are recommended but not required."
+    fi
+    
+    print_status "Firmware update process completed."
+    print_status "Updated firmware improves:"
+    echo "  • BIOS compatibility with Linux and hardware detection"
+    echo "  • Embedded Controller (EC) for better power/thermal management"
+    echo "  • Device firmware for optimal ASUS feature support"
+    echo "  • Security patches and performance improvements"
 }
 
 # Install asusctl
@@ -395,6 +545,9 @@ main() {
     remove_old_rust
     install_rust
     install_dependencies
+    install_recent_kernel
+    create_nouveau_blacklist
+    update_firmware
     install_asusctl
     install_supergfxctl
     configure_services
