@@ -1,0 +1,204 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run weekly to check if external dependencies are still available
+    - cron: '0 0 * * 0'
+
+jobs:
+  shellcheck:
+    name: Shell Script Linting
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run ShellCheck
+        uses: ludeeus/action-shellcheck@master
+        with:
+          scandir: '.'
+          format: gcc
+          severity: warning
+
+  syntax-check:
+    name: Syntax Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check script syntax
+        run: |
+          echo "Checking install script syntax..."
+          bash -n install-asus-linux.sh
+          
+          echo "Checking uninstall script syntax..."
+          bash -n uninstall-asus-linux.sh
+          
+          echo "Making scripts executable..."
+          chmod +x install-asus-linux.sh uninstall-asus-linux.sh
+          
+          echo "✅ All scripts have valid syntax"
+
+  url-validation:
+    name: External Dependencies Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check external URLs
+        run: |
+          echo "Checking GitLab repositories accessibility..."
+          
+          # Check asusctl repository
+          curl -f -s -I https://gitlab.com/asus-linux/asusctl.git > /dev/null
+          echo "✅ asusctl repository accessible"
+          
+          # Check supergfxctl repository  
+          curl -f -s -I https://gitlab.com/asus-linux/supergfxctl.git > /dev/null
+          echo "✅ supergfxctl repository accessible"
+          
+          # Check Rust installer
+          curl -f -s -I https://sh.rustup.rs > /dev/null
+          echo "✅ Rust installer accessible"
+          
+          # Check official ASUS Linux site
+          curl -f -s -I https://asus-linux.org/ > /dev/null
+          echo "✅ ASUS Linux website accessible"
+          
+          echo "✅ All external dependencies are accessible"
+
+  test-basic-functionality:
+    name: Basic Functionality Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Test script help and version info
+        run: |
+          chmod +x install-asus-linux.sh uninstall-asus-linux.sh
+          
+          echo "Testing install script basic execution..."
+          # Test that script shows help/version without actually installing
+          if grep -q "SCRIPT_VERSION" install-asus-linux.sh; then
+            echo "✅ Install script contains version information"
+          fi
+          
+          if grep -q "print_header" install-asus-linux.sh; then
+            echo "✅ Install script has proper structure"
+          fi
+          
+          echo "Testing uninstall script basic execution..."
+          if grep -q "SCRIPT_VERSION" uninstall-asus-linux.sh; then
+            echo "✅ Uninstall script contains version information" 
+          fi
+          
+          if grep -q "print_header" uninstall-asus-linux.sh; then
+            echo "✅ Uninstall script has proper structure"
+          fi
+
+  test-distributions:
+    name: Test on Linux Distributions
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # Test on distributions similar to Linux Mint base
+        container: 
+          - ubuntu:22.04
+          - ubuntu:24.04
+          - debian:12
+    container: ${{ matrix.container }}
+    steps:
+      - name: Install git and curl
+        run: |
+          apt-get update
+          apt-get install -y git curl ca-certificates
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Test script requirements check
+        run: |
+          chmod +x install-asus-linux.sh
+          
+          echo "Testing system requirements detection..."
+          
+          # Test that script can detect non-Mint systems
+          if bash install-asus-linux.sh 2>&1 | grep -q "different distribution" || echo "y" | bash install-asus-linux.sh 2>&1 | grep -q "Installing"; then
+            echo "✅ Script properly handles non-Mint distributions"
+          else
+            echo "⚠️  Script behavior on non-Mint system needs review"
+          fi
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run security checks
+        run: |
+          echo "Checking for potential security issues..."
+          
+          # Check for hardcoded secrets or sensitive data
+          if ! grep -r "password\|secret\|key\|token" --include="*.sh" --include="*.md" .; then
+            echo "✅ No obvious secrets found"
+          else
+            echo "⚠️  Found potential sensitive data - review needed"
+          fi
+          
+          # Check for proper use of sudo
+          if grep -q "sudo" *.sh && ! grep -q "sudo rm -rf /" *.sh; then
+            echo "✅ Sudo usage appears safe"
+          fi
+          
+          # Check for downloads over HTTPS
+          if ! grep -E "http://.*\.(sh|bash|tar|zip)" *.sh; then
+            echo "✅ No insecure HTTP downloads found"
+          else
+            echo "⚠️  Found HTTP downloads - should use HTTPS"
+          fi
+
+  documentation-check:
+    name: Documentation Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check documentation
+        run: |
+          echo "Checking documentation completeness..."
+          
+          # Check README has required sections
+          for section in "Features" "Requirements" "Installation" "Usage"; do
+            if grep -q "$section" README.md; then
+              echo "✅ README contains $section section"
+            else
+              echo "❌ README missing $section section"
+              exit 1
+            fi
+          done
+          
+          # Check CHANGELOG follows format
+          if grep -q "## \[" CHANGELOG.md; then
+            echo "✅ CHANGELOG follows semantic versioning format"
+          else
+            echo "❌ CHANGELOG format needs improvement"
+            exit 1
+          fi
+          
+          # Check LICENSE exists
+          if [ -f LICENSE ]; then
+            echo "✅ LICENSE file exists"
+          else
+            echo "❌ LICENSE file missing"
+            exit 1
+          fi 

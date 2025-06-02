@@ -1,0 +1,102 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Extract changelog for this version
+        id: changelog
+        run: |
+          # Extract the changelog section for this version
+          VERSION=${{ steps.get_version.outputs.VERSION }}
+          VERSION_NUMBER=${VERSION#v}
+          
+          # Get changelog section between this version and the next version header
+          CHANGELOG_SECTION=$(awk "/## \[$VERSION_NUMBER\]/{flag=1; next} /## \[/{flag=0} flag" CHANGELOG.md)
+          
+          # If no specific section found, use a default message
+          if [ -z "$CHANGELOG_SECTION" ]; then
+            CHANGELOG_SECTION="Release $VERSION_NUMBER of ASUS Linux Tools Installer for Linux Mint"
+          fi
+          
+          # Save to output (handling multiline)
+          {
+            echo 'CHANGELOG<<EOF'
+            echo "$CHANGELOG_SECTION"
+            echo EOF
+          } >> $GITHUB_OUTPUT
+
+      - name: Create release archive
+        run: |
+          # Create a clean archive without .git directory
+          mkdir -p release-assets
+          git archive --format=tar.gz --prefix=asus-linux-mint-${{ steps.get_version.outputs.VERSION }}/ HEAD > release-assets/asus-linux-mint-${{ steps.get_version.outputs.VERSION }}.tar.gz
+          git archive --format=zip --prefix=asus-linux-mint-${{ steps.get_version.outputs.VERSION }}/ HEAD > release-assets/asus-linux-mint-${{ steps.get_version.outputs.VERSION }}.zip
+
+      - name: Generate checksums
+        run: |
+          cd release-assets
+          sha256sum *.tar.gz *.zip > checksums.txt
+          cat checksums.txt
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.get_version.outputs.VERSION }}
+          name: Release ${{ steps.get_version.outputs.VERSION }}
+          body: |
+            ## ASUS Linux Tools Installer ${{ steps.get_version.outputs.VERSION }}
+            
+            ${{ steps.changelog.outputs.CHANGELOG }}
+            
+            ## Installation
+            
+            ### One-line Installation (Recommended)
+            ```bash
+            curl -sSL https://raw.githubusercontent.com/andreas-glaser/asus-linux-mint/${{ steps.get_version.outputs.VERSION }}/install-asus-linux.sh | bash
+            ```
+            
+            ### Manual Download and Install
+            ```bash
+            # Download the script
+            wget https://raw.githubusercontent.com/andreas-glaser/asus-linux-mint/${{ steps.get_version.outputs.VERSION }}/install-asus-linux.sh
+            
+            # Make it executable
+            chmod +x install-asus-linux.sh
+            
+            # Run the installer
+            ./install-asus-linux.sh
+            ```
+            
+            ## What's Included
+            
+            - `install-asus-linux.sh` - Main installation script
+            - `uninstall-asus-linux.sh` - Complete uninstall script
+            - Full documentation and examples
+            
+            ## Checksums
+            
+            See the attached `checksums.txt` file for SHA256 checksums of all release assets.
+            
+            ---
+            
+            **Requirements:** Linux Mint 22.1+ (Xia), ASUS ROG/TUF laptop, sudo privileges
+          files: |
+            release-assets/*
+          draft: false
+          prerelease: false 
