@@ -24,13 +24,13 @@ An automated installation script for [asusctl](https://gitlab.com/asus-linux/asu
 
 ### One-line Installation (Recommended)
 ```bash
-curl -sSL https://raw.githubusercontent.com/andreas-glaser/asus-linux-mint/v22.1.0/install-asus-linux.sh | bash
+curl -sSL https://raw.githubusercontent.com/andreas-glaser/asus-linux-mint/v22.1.1/install-asus-linux.sh | bash
 ```
 
 ### Manual Download and Install
 ```bash
 # Download the script
-wget https://raw.githubusercontent.com/andreas-glaser/asus-linux-mint/v22.1.0/install-asus-linux.sh
+wget https://raw.githubusercontent.com/andreas-glaser/asus-linux-mint/v22.1.1/install-asus-linux.sh
 
 # Make it executable
 chmod +x install-asus-linux.sh
@@ -87,7 +87,7 @@ If you need to remove ASUS Linux tools completely:
 ### Manual Download and Uninstall
 ```bash
 # Download the uninstall script
-wget https://raw.githubusercontent.com/andreas-glaser/asus-linux-mint/v22.1.0/uninstall-asus-linux.sh
+wget https://raw.githubusercontent.com/andreas-glaser/asus-linux-mint/v22.1.1/uninstall-asus-linux.sh
 
 # Make it executable
 chmod +x uninstall-asus-linux.sh
