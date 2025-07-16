@@ -22,19 +22,102 @@ An automated installation script for [asusctl](https://gitlab.com/asus-linux/asu
 - **Internet connection** for downloading dependencies
 - **Sudo privileges** for system modifications
 
+## 🚀 Kernel Recommendations for ASUS Hardware
+
+### 📊 Kernel Support Levels
+
+**🟢 Optimal Support: Kernel 6.12+** *(requires mainline installation)*
+- **Enhanced ASUS WMI driver** with thermal profile initialization fixes
+- **Intel Lunar Lake performance boost** (~22% improvement on ASUS laptops)
+- **Improved ROG Ally support** with better suspend/resume functionality
+- **Mini-LED support** for 2024 ROG laptop models
+- **Enhanced GPU MUX switching** for Vivobook series
+- **Better power management** and thermal controls
+
+**🟡 Good Support: Kernel 6.8+** *(available through standard HWE)*
+- Full TUF/ROG laptop hardware support
+- Fan curve control and RGB lighting
+- GPU switching functionality
+- Most ASUS-specific features working
+
+**🔴 Basic Support: Kernel 6.1+** *(minimum requirement)*
+- Basic ASUS hardware recognition
+- Limited feature support
+
+### 📦 Installation Options
+
+**Standard Installation (HWE Kernels up to ~6.8):**
+- Our installation script automatically offers HWE kernel updates
+- Uses official Ubuntu/Linux Mint repositories
+- Safe and well-tested
+- Provides good ASUS hardware support
+
+**Advanced Installation (Mainline 6.12+ for optimal support):**
+- Requires manual mainline kernel installation
+- Provides absolute best ASUS hardware support
+- More experimental but offers latest improvements
+
+### ⚡ Quick Kernel Check
+Check your current kernel version:
+```bash
+uname -r
+```
+
+**If you have 6.12+**: Perfect! You have optimal ASUS support.
+**If you have 6.8+**: Great! You have good ASUS support via HWE.
+**If you have 6.1+**: Basic support. Consider upgrading for better features.
+**If you have <6.1**: Upgrade needed for ASUS tools to work properly.
+
+### 🔧 Advanced: Mainline Kernel 6.12+ Installation
+
+For users who want **absolute optimal ASUS support**, you can manually install mainline kernel 6.12+:
+
+<details>
+<summary>📋 Click to expand mainline kernel installation methods</summary>
+
+**⚠️ Important Warnings:**
+- Mainline kernels are experimental and unsigned
+- Always keep a working kernel as backup
+- You may need to reinstall NVIDIA drivers after kernel updates
+- Test thoroughly before relying on mainline kernels
+
+**Option 1: Ubuntu Mainline Kernel Installer**
+```bash
+# Install the mainline kernel tool
+sudo apt install -y wget
+wget -qO - https://raw.githubusercontent.com/pimlie/ubuntu-mainline-kernel.sh/master/ubuntu-mainline-kernel.sh | sudo bash
+
+# Install latest stable kernel
+sudo ubuntu-mainline-kernel.sh -i
+```
+
+**Option 2: Manual Installation**
+1. Visit [Ubuntu Mainline Kernels](https://kernel.ubuntu.com/mainline/)
+2. Download the latest 6.12+ kernel packages for your architecture
+3. Install using: `sudo dpkg -i *.deb`
+
+**Option 3: GUI Tool (TuxInvader)**
+```bash
+sudo add-apt-repository ppa:tuxinvader/mainline
+sudo apt update && sudo apt install mainline
+# Launch 'mainline' GUI and install latest kernel
+```
+
+</details>
+
 ## 🛠️ Installation
 
 ### Quick Install (Recommended)
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/andreas-glaser/asus-linux-mint/v22.1.2/install-asus-linux.sh | bash
+curl -sSL https://raw.githubusercontent.com/andreas-glaser/asus-linux-mint/v22.1.3/install-asus-linux.sh | bash
 ```
 
 ### Manual Install
 
 ```bash
 # Download the script
-wget https://raw.githubusercontent.com/andreas-glaser/asus-linux-mint/v22.1.2/install-asus-linux.sh
+wget https://raw.githubusercontent.com/andreas-glaser/asus-linux-mint/v22.1.3/install-asus-linux.sh
 
 # Make it executable
 chmod +x install-asus-linux.sh
@@ -119,14 +202,14 @@ sudo journalctl -u supergfxd.service -f
 ### Quick Uninstall
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/andreas-glaser/asus-linux-mint/v22.1.2/uninstall-asus-linux.sh | bash
+curl -sSL https://raw.githubusercontent.com/andreas-glaser/asus-linux-mint/v22.1.3/uninstall-asus-linux.sh | bash
 ```
 
 ### Manual Uninstall
 
 ```bash
 # Download the uninstall script
-wget https://raw.githubusercontent.com/andreas-glaser/asus-linux-mint/v22.1.2/uninstall-asus-linux.sh
+wget https://raw.githubusercontent.com/andreas-glaser/asus-linux-mint/v22.1.3/uninstall-asus-linux.sh
 
 # Make it executable
 chmod +x uninstall-asus-linux.sh
