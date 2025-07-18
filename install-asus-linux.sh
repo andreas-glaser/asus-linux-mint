@@ -68,10 +68,10 @@ print_warning() {
 
 print_header() {
     echo -e "\e[1;34m"
-    echo "╔══════════════════════════════════════════════════════════════╗"
-    echo "║           ASUS Linux Tools Installation Script              ║"
-    echo "║                     Version $SCRIPT_VERSION                        ║"
-    echo "╚══════════════════════════════════════════════════════════════╝"
+    echo "========================================"
+    echo "  ASUS Linux Tools Installation Script"
+    echo "  Version $SCRIPT_VERSION"
+    echo "========================================"
     echo -e "\e[0m"
 }
 
