@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project follows Linux Mint release versioning with patch numbers.
 
+## [22.2.0] - 2025-09-06
+
+### Added
+- Target Linux Mint 22.2 (Zara) only.
+
+### Changed
+- README: simplify kernel section to reflect Mint 22.2’s default HWE kernel 6.14; keep optional mainline instructions.
+- Scripts: set minimum supported Mint to 22.2; align kernel guidance to 6.14; correct HWE meta-packages to `linux-generic`/`linux-headers-generic`.
+- CI: update release requirements text to “Linux Mint 22.2 (Zara)”.
+
+### Fixed
+- Uninstall script header label and version alignment.
+
 ## [22.1.3] - 2025-07-16
 
 ### Added

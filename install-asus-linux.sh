@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ASUS Linux Tools Installation Script for Linux Mint 22.2
-# Version: 22.1.2
+# Version: 22.2.0
 # 
 # This script installs the latest versions of asusctl and supergfxctl for ASUS laptops.
 # It will also configure the systemd services to start on boot.
@@ -28,7 +28,7 @@
 set -euo pipefail
 
 # Script configuration
-SCRIPT_VERSION="22.1.3"
+SCRIPT_VERSION="22.2.0"
 MIN_MINT_VERSION="22.2"
 MIN_KERNEL_VERSION="6.1"
 
