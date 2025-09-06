@@ -99,7 +99,7 @@ jobs:
             
             ---
             
-            **Requirements:** Linux Mint 22.1+ (Xia), ASUS ROG/TUF laptop, sudo privileges
+            **Requirements:** Linux Mint 22.2 (Zara), ASUS ROG/TUF laptop, sudo privileges
           files: |
             release-assets/*
           draft: false

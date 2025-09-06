@@ -1,22 +1,22 @@
 #!/bin/bash
 
-# ASUS Linux Tools Installation Script for Linux Mint 22.1+
+# ASUS Linux Tools Installation Script for Linux Mint 22.2
 # Version: 22.1.2
 # 
 # This script installs the latest versions of asusctl and supergfxctl for ASUS laptops.
 # It will also configure the systemd services to start on boot.
 # 
 # Requirements:
-# - Linux Mint 22.1+ (Cinnamon, MATE, or Xfce edition)
+# - Linux Mint 22.2 (Cinnamon, MATE, or Xfce edition)
 # - Internet connection for downloading dependencies
 # - Sudo privileges
 # - ASUS ROG/TUF laptop with supported hardware
 # 
 # Usage:
-#   curl -sSL https://raw.githubusercontent.com/andreas-glaser/asus-linux-mint/v22.1.3/install-asus-linux.sh | bash
+#   curl -sSL https://raw.githubusercontent.com/andreas-glaser/asus-linux-mint/main/install-asus-linux.sh | bash
 #   
 #   Or download and run locally:
-#   wget https://raw.githubusercontent.com/andreas-glaser/asus-linux-mint/v22.1.3/install-asus-linux.sh
+#   wget https://raw.githubusercontent.com/andreas-glaser/asus-linux-mint/main/install-asus-linux.sh
 #   chmod +x install-asus-linux.sh
 #   ./install-asus-linux.sh
 # 
@@ -29,13 +29,13 @@ set -euo pipefail
 
 # Script configuration
 SCRIPT_VERSION="22.1.3"
-MIN_MINT_VERSION="22.1"
+MIN_MINT_VERSION="22.2"
 MIN_KERNEL_VERSION="6.1"
 
 # ASUS hardware support kernel requirements
 ASUS_MIN_KERNEL="6.1"           # Minimum for full ASUS hardware support
-ASUS_OPTIMAL_KERNEL="6.12"      # Optimal for latest ASUS-specific fixes (requires mainline installation)
-ASUS_HWE_MAX_KERNEL="6.8"       # Maximum available through standard HWE stack
+ASUS_OPTIMAL_KERNEL="6.14"      # Optimal for latest ASUS-specific fixes (Mint 22.2 HWE or newer mainline)
+ASUS_HWE_MAX_KERNEL="6.14"      # Maximum available through Mint 22.2 HWE stack
 
 # Set working directory (can be overridden with ASUS_BUILD_DIR environment variable)
 BASE_DIR="${ASUS_BUILD_DIR:-$HOME/.local/src/asus-linux}"
@@ -267,11 +267,11 @@ install_recent_kernel() {
 
 # Install HWE kernel helper function
 install_hwe_kernel() {
-    print_status "Installing Hardware Enablement (HWE) kernel stack..."
+    print_status "Installing updated kernel (Mint 22.2 HWE)..."
     
-    # Install HWE kernel for Linux Mint/Ubuntu
-    if sudo apt install -y linux-generic-hwe-22.04 linux-headers-generic-hwe-22.04 2>/dev/null; then
-        print_status "✓ HWE kernel stack installed successfully."
+    # On Linux Mint 22.2 (Ubuntu 24.04 base), install the generic meta packages
+    if sudo apt install -y linux-generic linux-headers-generic 2>/dev/null; then
+        print_status "✓ Kernel meta packages installed successfully."
         print_warning "IMPORTANT: Reboot required to use the new kernel."
         
         # Show what kernel will be available after reboot
@@ -279,11 +279,8 @@ install_hwe_kernel() {
         if [ -n "$latest_installed" ]; then
             latest_version=$(echo "$latest_installed" | cut -d- -f1 | cut -d. -f1,2)
             print_status "New kernel version available after reboot: $latest_version"
-            print_status "This provides improved ASUS hardware support within HWE limits."
+            print_status "This provides improved ASUS hardware support."
         fi
-    elif sudo apt install -y linux-generic linux-headers-generic 2>/dev/null; then
-        print_status "✓ Updated kernel stack installed successfully."
-        print_warning "IMPORTANT: Reboot required to use the new kernel."
     else
         print_warning "⚠ Could not install newer kernel automatically."
         print_warning "Consider manually updating your kernel for optimal ASUS hardware support."
@@ -593,7 +590,7 @@ show_status() {
 # Main installation flow
 main() {
     print_header
-    print_status "Starting ASUS Linux tools installation for Linux Mint $MIN_MINT_VERSION+..."
+    print_status "Starting ASUS Linux tools installation for Linux Mint $MIN_MINT_VERSION..."
     print_status "Script version: $SCRIPT_VERSION"
     echo
     
@@ -621,4 +618,3 @@ main() {
 
 # Run main function
 main "$@"
-
