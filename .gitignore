@@ -5,6 +5,9 @@
 *.swp
 *.swo
 *~
+.idea
+CLAUDE.md
+AGENTS.md
 
 # OS files
 .DS_Store
