@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project follows Linux Mint release versioning with patch numbers.
 
+## [22.2.1] - 2025-10-19
+
+### Fixed
+- Prevent the install script from re-running `cargo build` as root, avoiding git fetch failures for `slint` when network access is restricted.
+- Limit privilege escalation to file installation so builds reuse the user environment and finish reliably.
+
 ## [22.2.0] - 2025-09-06
 
 ### Added
