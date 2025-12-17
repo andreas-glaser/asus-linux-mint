@@ -92,6 +92,15 @@ chmod +x install-asus-linux.sh
 ASUS_BUILD_DIR="/opt/asus-build" ./install-asus-linux.sh
 ```
 
+### Optional: Install ROG Control Center (GUI)
+
+By default, the installer includes `rog-control-center` (GUI).
+
+```bash
+# Skip the GUI (CLI + daemon only)
+ASUS_INSTALL_ROG_GUI=0 ./install-asus-linux.sh
+```
+
 ## 📦 What Gets Installed
 
 ### Core Components

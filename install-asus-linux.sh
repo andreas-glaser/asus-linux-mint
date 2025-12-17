@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ASUS Linux Tools Installation Script for Linux Mint 22.2
-# Version: 22.2.1
+# Version: 22.2.2
 # 
 # This script installs the latest versions of asusctl and supergfxctl for ASUS laptops.
 # It will also configure the systemd services to start on boot.
@@ -28,7 +28,7 @@
 set -euo pipefail
 
 # Script configuration
-SCRIPT_VERSION="22.2.1"
+SCRIPT_VERSION="22.2.2"
 MIN_MINT_VERSION="22.2"
 MIN_KERNEL_VERSION="6.1"
 
@@ -39,6 +39,10 @@ ASUS_HWE_MAX_KERNEL="6.14"      # Maximum available through Mint 22.2 HWE stack
 
 # Set working directory (can be overridden with ASUS_BUILD_DIR environment variable)
 BASE_DIR="${ASUS_BUILD_DIR:-$HOME/.local/src/asus-linux}"
+
+# Optional: install ROG Control Center GUI (build + desktop integration)
+# Default: enabled for Linux Mint desktop users; set ASUS_INSTALL_ROG_GUI=0 to skip.
+INSTALL_ROG_GUI="${ASUS_INSTALL_ROG_GUI:-1}"
 
 # Cleanup function for graceful error handling
 cleanup() {
@@ -189,10 +193,12 @@ install_dependencies() {
     sudo apt install -y \
         git \
         build-essential \
+        cmake \
         libclang-dev \
         libudev-dev \
         libdbus-1-dev \
         libsystemd-dev \
+        libssl-dev \
         pkg-config \
         meson \
         ninja-build \
@@ -201,6 +207,22 @@ install_dependencies() {
         wget \
         linux-firmware \
         fwupd
+
+    # Optional dependencies for rog-control-center (GUI)
+    if [[ "$INSTALL_ROG_GUI" == "1" ]]; then
+        print_status "Installing optional GUI build dependencies (rog-control-center)..."
+        sudo apt install -y \
+            libfontconfig1-dev \
+            libfreetype6-dev \
+            libexpat1-dev \
+            libxkbcommon-dev \
+            libx11-dev \
+            libxcb-composite0-dev \
+            libwayland-dev \
+            libgbm-dev \
+            libinput-dev \
+            libseat-dev
+    fi
         
     print_status "Build dependencies installed successfully."
 }
@@ -417,15 +439,67 @@ install_asusctl() {
         cd ..
     fi
 
-    # Build and install asusctl using the official Makefile
     cd asusctl
-    print_status "Building asusctl (this may take several minutes)..."
-    make
-    print_status "Installing asusctl..."
-    make install INSTALL_PROGRAM="sudo install -D -m 0755" INSTALL_DATA="sudo install -D -m 0644"
-    
-    # Reload systemd to recognize new service files
+    if [[ "$INSTALL_ROG_GUI" != "1" ]]; then
+        print_status "Skipping rog-control-center (GUI) because ASUS_INSTALL_ROG_GUI=0."
+    fi
+
+    print_status "Building asusctl (daemon + CLI) (this may take several minutes)..."
+    cargo build --release --locked -p asusctl -p asusd -p asusd-user
+    if [[ "$INSTALL_ROG_GUI" == "1" ]]; then
+        print_status "Building rog-control-center (GUI)..."
+        # Linux Mint desktops commonly run X11; enable X11 backend to avoid runtime panics.
+        cargo build --release --locked -p rog-control-center --features "rog-control-center/x11"
+    fi
+
+    print_status "Installing asusctl and asusd..."
+    sudo install -D -m 0755 "./target/release/asusctl" "/usr/bin/asusctl"
+    sudo install -D -m 0755 "./target/release/asusd" "/usr/bin/asusd"
+    sudo install -D -m 0755 "./target/release/asusd-user" "/usr/bin/asusd-user"
+
+    # Install system integration files (udev, dbus, systemd, data assets)
+    sudo install -D -m 0644 "./data/asusd.rules" "/usr/lib/udev/rules.d/99-asusd.rules"
+    sudo install -D -m 0644 "./data/asusd.conf" "/usr/share/dbus-1/system.d/asusd.conf"
+    sudo install -D -m 0644 "./data/asusd.service" "/usr/lib/systemd/system/asusd.service"
+    sudo install -D -m 0644 "./data/asusd-user.service" "/usr/lib/systemd/user/asusd-user.service"
+    sudo install -D -m 0644 "./rog-aura/data/aura_support.ron" "/usr/share/asusd/aura_support.ron"
+
+    if [ -d "./rog-anime/data/anime" ]; then
+        sudo mkdir -p "/usr/share/asusd"
+        sudo cp -a "./rog-anime/data/anime" "/usr/share/asusd/"
+    else
+        print_warning "Anime data directory not found; continuing without it."
+    fi
+
+    # Optional: install ROG Control Center desktop integration
+    if [[ "$INSTALL_ROG_GUI" == "1" ]]; then
+        sudo install -D -m 0755 "./target/release/rog-control-center" "/usr/bin/rog-control-center"
+        sudo install -D -m 0644 "./rog-control-center/data/rog-control-center.desktop" "/usr/share/applications/rog-control-center.desktop"
+        sudo install -D -m 0644 "./rog-control-center/data/rog-control-center.png" "/usr/share/icons/hicolor/512x512/apps/rog-control-center.png"
+
+        if [ -d "./rog-aura/data/layouts" ]; then
+            sudo mkdir -p "/usr/share/rog-gui/layouts"
+            sudo cp -a "./rog-aura/data/layouts/." "/usr/share/rog-gui/layouts/"
+        fi
+
+        sudo install -D -m 0644 "./data/icons/asus_notif_yellow.png" "/usr/share/icons/hicolor/512x512/apps/asus_notif_yellow.png"
+        sudo install -D -m 0644 "./data/icons/asus_notif_green.png" "/usr/share/icons/hicolor/512x512/apps/asus_notif_green.png"
+        sudo install -D -m 0644 "./data/icons/asus_notif_blue.png" "/usr/share/icons/hicolor/512x512/apps/asus_notif_blue.png"
+        sudo install -D -m 0644 "./data/icons/asus_notif_red.png" "/usr/share/icons/hicolor/512x512/apps/asus_notif_red.png"
+        sudo install -D -m 0644 "./data/icons/asus_notif_orange.png" "/usr/share/icons/hicolor/512x512/apps/asus_notif_orange.png"
+        sudo install -D -m 0644 "./data/icons/asus_notif_white.png" "/usr/share/icons/hicolor/512x512/apps/asus_notif_white.png"
+
+        sudo install -D -m 0644 "./data/icons/scalable/gpu-compute.svg" "/usr/share/icons/hicolor/scalable/status/gpu-compute.svg"
+        sudo install -D -m 0644 "./data/icons/scalable/gpu-hybrid.svg" "/usr/share/icons/hicolor/scalable/status/gpu-hybrid.svg"
+        sudo install -D -m 0644 "./data/icons/scalable/gpu-integrated.svg" "/usr/share/icons/hicolor/scalable/status/gpu-integrated.svg"
+        sudo install -D -m 0644 "./data/icons/scalable/gpu-nvidia.svg" "/usr/share/icons/hicolor/scalable/status/gpu-nvidia.svg"
+        sudo install -D -m 0644 "./data/icons/scalable/gpu-vfio.svg" "/usr/share/icons/hicolor/scalable/status/gpu-vfio.svg"
+        sudo install -D -m 0644 "./data/icons/scalable/notification-reboot.svg" "/usr/share/icons/hicolor/scalable/status/notification-reboot.svg"
+    fi
+
+    # Reload daemons to recognize new service and rules
     sudo systemctl daemon-reload
+    sudo udevadm control --reload-rules 2>/dev/null || true
     cd ..
     
     print_status "asusctl installed successfully."
@@ -466,17 +540,28 @@ configure_services() {
     print_status "Configuring and starting systemd services..."
     
     # Enable and start asusd service (system-level)
-    if systemctl list-unit-files | grep -q "asusd.service"; then
+    if systemctl list-unit-files --type=service 2>/dev/null | grep -q "^asusd\\.service"; then
+        sudo systemctl enable asusd.service
+        sudo systemctl start asusd.service
+        print_status "asusd.service enabled and started."
+    elif [ -f "/usr/lib/systemd/system/asusd.service" ] || [ -f "/lib/systemd/system/asusd.service" ] || [ -f "/etc/systemd/system/asusd.service" ] || [ -f "/usr/local/lib/systemd/system/asusd.service" ]; then
+        sudo systemctl daemon-reload
         sudo systemctl enable asusd.service
         sudo systemctl start asusd.service
         print_status "asusd.service enabled and started."
     else
         print_error "asusd.service not found. Installation may have failed."
+        print_error "Expected unit file at /usr/lib/systemd/system/asusd.service (or similar)."
         return 1
     fi
     
     # Enable and start supergfxd service (system-level)
-    if systemctl list-unit-files | grep -q "supergfxd.service"; then
+    if systemctl list-unit-files --type=service 2>/dev/null | grep -q "^supergfxd\\.service"; then
+        sudo systemctl enable supergfxd.service
+        sudo systemctl start supergfxd.service
+        print_status "supergfxd.service enabled and started."
+    elif [ -f "/usr/lib/systemd/system/supergfxd.service" ] || [ -f "/lib/systemd/system/supergfxd.service" ] || [ -f "/etc/systemd/system/supergfxd.service" ] || [ -f "/usr/local/lib/systemd/system/supergfxd.service" ]; then
+        sudo systemctl daemon-reload
         sudo systemctl enable supergfxd.service
         sudo systemctl start supergfxd.service
         print_status "supergfxd.service enabled and started."
@@ -486,12 +571,13 @@ configure_services() {
     fi
     
     # Enable asusd-user service for current user (user-level)
-    if systemctl --user list-unit-files | grep -q "asusd-user.service"; then
-        systemctl --user enable asusd-user.service
-        systemctl --user start asusd-user.service
+    if systemctl --user list-unit-files 2>/dev/null | grep -q "^asusd-user\\.service"; then
+        systemctl --user enable asusd-user.service 2>/dev/null || true
+        systemctl --user start asusd-user.service 2>/dev/null || true
         print_status "asusd-user.service enabled and started for current user."
     else
-        print_warning "asusd-user.service not found. This is optional but recommended."
+        print_warning "asusd-user.service not available in the current session. This is optional but recommended."
+        print_warning "After reboot/login, you can enable it with: systemctl --user enable --now asusd-user.service"
     fi
     
     # Add user to appropriate group for supergfxctl
@@ -575,6 +661,9 @@ show_status() {
     echo "• Example: 'supergfxctl --mode Hybrid' to enable hybrid graphics"
     echo "• Check service logs: 'sudo journalctl -u asusd.service' or 'sudo journalctl -u supergfxd.service'"
     echo "• GUI application: Install 'asusctl-gui' for graphical interface"
+    echo "• GUI toggle: Re-run installer with ASUS_INSTALL_ROG_GUI=0 to skip 'rog-control-center'"
+    echo "• If cargo/rustup isn't in PATH: run 'source ~/.cargo/env' or open a new terminal"
+    echo "• Note: Fan curve control depends on laptop model/firmware; if it doesn't appear in 'asusctl -s', it's not supported."
     echo
     print_warning "IMPORTANT: You may need to log out and back in (or reboot) for group changes to take effect."
     print_warning "Some GPU mode changes require a reboot to take effect."

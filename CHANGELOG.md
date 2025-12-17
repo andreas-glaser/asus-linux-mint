@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project follows Linux Mint release versioning with patch numbers.
 
+## [22.2.2] - 2025-12-17
+
+### Fixed
+- Prevent `rog-control-center` build failures on fresh Mint installs by installing the required GUI dependencies (e.g. `libfontconfig1-dev`).
+- Prevent `rog-control-center` panics on X11 sessions by building with X11 support enabled.
+- Install `asusd.service` more reliably and improve service discovery when enabling units.
+
+### Changed
+- Installer: add core build deps `cmake` and `libssl-dev`.
+- Installer: install `rog-control-center` by default; set `ASUS_INSTALL_ROG_GUI=0` to opt out.
+in 
+### Thanks
+- Thanks to @NoonyaBeeznus for the detailed report and logs in issue #2.
+
 ## [22.2.1] - 2025-10-19
 
 ### Fixed
