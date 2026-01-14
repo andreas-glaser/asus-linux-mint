@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project follows Linux Mint release versioning with patch numbers.
 
+## [22.3.0] - 2026-01-15
+
+### Added
+- Target Linux Mint 22.3 (Zena) only.
+
+### Changed
+- Scripts: set minimum supported Mint to 22.3.
+- README: update requirements and kernel section for Mint 22.3.
+
+### Fixed
+- Installer: post-install messages now correctly reflect whether `rog-control-center` GUI was installed.
+
 ## [22.2.2] - 2025-12-17
 
 ### Fixed

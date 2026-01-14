@@ -11,20 +11,20 @@ An automated installation script for [asusctl](https://gitlab.com/asus-linux/asu
 - **Comprehensive dependency management** including linux-firmware
 - **Proper systemd service configuration** 
 - **Comprehensive error handling** with colored output
-- **Linux Mint compatibility** for version 22.2
+- **Linux Mint compatibility** for version 22.3
 - **Safe uninstallation** with complete cleanup
 - **ASUS ROG/TUF hardware support** for all major laptop models
 
 ## 📋 Requirements
 
-- **Linux Mint 22.2** (Cinnamon, MATE, or Xfce edition)
+- **Linux Mint 22.3** (Cinnamon, MATE, or Xfce edition)
 - **ASUS ROG/TUF laptop** with compatible hardware
 - **Internet connection** for downloading dependencies
 - **Sudo privileges** for system modifications
 
 ## 🧰 Kernel
 
-- Default: Linux Mint 22.2 ships the HWE kernel 6.14, which is recommended and sufficient for ASUS laptops.
+- Default: Linux Mint 22.3 ships the HWE kernel 6.14, which is recommended and sufficient for ASUS laptops.
 - Optional: If you need newer hardware fixes, you can install a newer mainline kernel and keep 6.14 as fallback.
 
 ### 🔧 Optional: Install a newer mainline kernel

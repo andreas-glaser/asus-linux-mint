@@ -1,13 +1,13 @@
 #!/bin/bash
 
-# ASUS Linux Tools Installation Script for Linux Mint 22.2
-# Version: 22.2.2
-# 
+# ASUS Linux Tools Installation Script for Linux Mint 22.3
+# Version: 22.3.0
+#
 # This script installs the latest versions of asusctl and supergfxctl for ASUS laptops.
 # It will also configure the systemd services to start on boot.
-# 
+#
 # Requirements:
-# - Linux Mint 22.2 (Cinnamon, MATE, or Xfce edition)
+# - Linux Mint 22.3 (Cinnamon, MATE, or Xfce edition)
 # - Internet connection for downloading dependencies
 # - Sudo privileges
 # - ASUS ROG/TUF laptop with supported hardware
@@ -28,14 +28,14 @@
 set -euo pipefail
 
 # Script configuration
-SCRIPT_VERSION="22.2.2"
-MIN_MINT_VERSION="22.2"
+SCRIPT_VERSION="22.3.0"
+MIN_MINT_VERSION="22.3"
 MIN_KERNEL_VERSION="6.1"
 
 # ASUS hardware support kernel requirements
 ASUS_MIN_KERNEL="6.1"           # Minimum for full ASUS hardware support
-ASUS_OPTIMAL_KERNEL="6.14"      # Optimal for latest ASUS-specific fixes (Mint 22.2 HWE or newer mainline)
-ASUS_HWE_MAX_KERNEL="6.14"      # Maximum available through Mint 22.2 HWE stack
+ASUS_OPTIMAL_KERNEL="6.14"      # Optimal for latest ASUS-specific fixes (Mint 22.3 HWE or newer mainline)
+ASUS_HWE_MAX_KERNEL="6.14"      # Maximum available through Mint 22.3 HWE stack
 
 # Set working directory (can be overridden with ASUS_BUILD_DIR environment variable)
 BASE_DIR="${ASUS_BUILD_DIR:-$HOME/.local/src/asus-linux}"
@@ -289,9 +289,9 @@ install_recent_kernel() {
 
 # Install HWE kernel helper function
 install_hwe_kernel() {
-    print_status "Installing updated kernel (Mint 22.2 HWE)..."
-    
-    # On Linux Mint 22.2 (Ubuntu 24.04 base), install the generic meta packages
+    print_status "Installing updated kernel (Mint HWE)..."
+
+    # On Linux Mint 22.3 (Ubuntu 24.04 base), install the generic meta packages
     if sudo apt install -y linux-generic linux-headers-generic 2>/dev/null; then
         print_status "✓ Kernel meta packages installed successfully."
         print_warning "IMPORTANT: Reboot required to use the new kernel."
@@ -660,8 +660,11 @@ show_status() {
     echo "• GPU modes: Integrated, Hybrid, Vfio (and possibly AsusEgpu, AsusMuxDgpu)"
     echo "• Example: 'supergfxctl --mode Hybrid' to enable hybrid graphics"
     echo "• Check service logs: 'sudo journalctl -u asusd.service' or 'sudo journalctl -u supergfxd.service'"
-    echo "• GUI application: Install 'asusctl-gui' for graphical interface"
-    echo "• GUI toggle: Re-run installer with ASUS_INSTALL_ROG_GUI=0 to skip 'rog-control-center'"
+    if [[ "$INSTALL_ROG_GUI" == "1" ]]; then
+        echo "• GUI application: Launch 'rog-control-center' from your application menu"
+    else
+        echo "• GUI application: Re-run installer with ASUS_INSTALL_ROG_GUI=1 to install 'rog-control-center'"
+    fi
     echo "• If cargo/rustup isn't in PATH: run 'source ~/.cargo/env' or open a new terminal"
     echo "• Note: Fan curve control depends on laptop model/firmware; if it doesn't appear in 'asusctl -s', it's not supported."
     echo
@@ -673,7 +676,11 @@ show_status() {
     echo "1. Reboot to ensure all changes take effect"
     echo "2. Test GPU switching with: supergfxctl --mode Integrated"
     echo "3. Check ASUS controls with: asusctl -s"
-    echo "4. Install asusctl-gui for a graphical interface (optional)"
+    if [[ "$INSTALL_ROG_GUI" == "1" ]]; then
+        echo "4. Launch 'ROG Control Center' from your application menu"
+    else
+        echo "4. (Optional) Re-run with ASUS_INSTALL_ROG_GUI=1 to install the GUI"
+    fi
 }
 
 # Main installation flow

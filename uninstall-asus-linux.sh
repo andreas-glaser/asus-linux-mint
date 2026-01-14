@@ -1,13 +1,13 @@
 #!/bin/bash
 
-# ASUS Linux Tools Uninstall Script for Linux Mint 22.2
-# Version: 22.2.2
-# 
+# ASUS Linux Tools Uninstall Script for Linux Mint 22.3
+# Version: 22.3.0
+#
 # This script removes asusctl and supergfxctl and all associated files,
 # services, and configurations that were installed by install-asus-linux.sh
-# 
+#
 # Requirements:
-# - Linux Mint 22.2 (Cinnamon, MATE, or Xfce edition)
+# - Linux Mint 22.3 (Cinnamon, MATE, or Xfce edition)
 # - Sudo privileges
 # - Previously installed asusctl/supergfxctl via install-asus-linux.sh
 # 
@@ -24,7 +24,7 @@
 set -euo pipefail
 
 # Script configuration
-SCRIPT_VERSION="22.2.2"
+SCRIPT_VERSION="22.3.0"
 BASE_DIR="${ASUS_BUILD_DIR:-$HOME/.local/src/asus-linux}"
 
 # Function for colored output
