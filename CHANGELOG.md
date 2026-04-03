@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project follows Linux Mint release versioning with patch numbers.
 
+## [Unreleased]
+
+### Added
+- README: add troubleshooting guidance for Cinnamon/X11 screen brightness issues on hybrid AMD/NVIDIA ASUS laptops.
+
 ## [22.3.0] - 2026-01-15
 
 ### Added

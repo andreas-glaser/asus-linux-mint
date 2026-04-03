@@ -229,6 +229,17 @@ lspci | grep -i vga
 sudo reboot
 ```
 
+**Screen brightness is stuck dim or the slider does nothing (Cinnamon/X11):**
+On some hybrid AMD/NVIDIA ASUS laptops, Cinnamon picks the NVIDIA firmware backlight (`nvidia_wmi_ec_backlight`) instead of the real panel backlight (`amdgpu_bl1`).
+
+```bash
+# Force Cinnamon to prefer the AMD raw backlight
+gsettings set org.cinnamon.settings-daemon.plugins.power backlight-helper-force true
+gsettings set org.cinnamon.settings-daemon.plugins.power backlight-helper-preference-order "['raw', 'platform', 'firmware']"
+```
+
+Log out and back in, or reboot. If it still fails after reboot, check `/sys/class/backlight/` and consider disabling `nvidia_wmi_ec_backlight` system-wide.
+
 **Permission issues:**
 ```bash
 # Check user groups
