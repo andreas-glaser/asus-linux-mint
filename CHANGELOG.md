@@ -7,6 +7,8 @@ and this project follows Linux Mint release versioning with patch numbers.
 
 ## [Unreleased]
 
+## [22.3.1] - 2026-05-20
+
 ### Added
 - README: add troubleshooting guidance for Cinnamon/X11 screen brightness issues on hybrid AMD/NVIDIA ASUS laptops.
 - Uninstaller: prompt to remove `/etc/asusd` runtime configuration directory (preserves user-customised fan curves, profiles, and LED settings by default).
