@@ -538,7 +538,11 @@ install_supergfxctl() {
 # Configure and start services
 configure_services() {
     print_status "Configuring and starting systemd services..."
-    
+
+    # asusd.service uses ProtectSystem=strict with ReadWritePaths=/etc/asusd/.
+    # systemd refuses to start the unit (exit 226/NAMESPACE) if /etc/asusd is missing.
+    sudo install -d -m 0755 /etc/asusd
+
     # Enable and start asusd service (system-level)
     if systemctl list-unit-files --type=service 2>/dev/null | grep -q "^asusd\\.service"; then
         sudo systemctl enable asusd.service

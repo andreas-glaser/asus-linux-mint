@@ -9,6 +9,13 @@ and this project follows Linux Mint release versioning with patch numbers.
 
 ### Added
 - README: add troubleshooting guidance for Cinnamon/X11 screen brightness issues on hybrid AMD/NVIDIA ASUS laptops.
+- Uninstaller: prompt to remove `/etc/asusd` runtime configuration directory (preserves user-customised fan curves, profiles, and LED settings by default).
+
+### Fixed
+- Installer: create `/etc/asusd` before starting `asusd.service` to prevent `status=226/NAMESPACE` failures on fresh installs. The upstream unit declares `ProtectSystem=strict` with `ReadWritePaths=/etc/asusd/`, so systemd refuses to set up the unit's mount namespace if the directory is missing.
+
+### Thanks
+- Thanks to @cyntalan for reporting the `asusd.service` start failure and tracking down the workaround in issue #5.
 
 ## [22.3.0] - 2026-01-15
 

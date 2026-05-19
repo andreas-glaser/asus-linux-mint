@@ -60,6 +60,7 @@ confirm_uninstall() {
     echo "  • All systemd services (asusd, supergfxd, asusd-user)"
     echo "  • Configuration files and udev rules"
     echo "  • Desktop files and icons"
+    echo "  • asusd runtime configuration directory (optional)"
     echo "  • Nouveau driver blacklist (optional)"
     echo "  • Build directories (optional)"
     echo
@@ -182,6 +183,29 @@ remove_config_files() {
             print_status "✓ Removed $data_dir"
         fi
     done
+}
+
+# Remove asusd runtime configuration directory (may hold user customisations)
+remove_asusd_config() {
+    print_status "Checking for asusd configuration directory..."
+
+    local asusd_config_dir="/etc/asusd"
+
+    if [ -d "$asusd_config_dir" ]; then
+        print_warning "asusd configuration directory found: $asusd_config_dir"
+        print_warning "This directory may contain user-customised fan curves, profiles, and LED settings."
+        echo
+        read -p "Remove asusd configuration directory? (y/N): " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            sudo rm -rf "$asusd_config_dir"
+            print_status "✓ Removed $asusd_config_dir"
+        else
+            print_status "asusd configuration directory preserved."
+        fi
+    else
+        print_status "✓ No asusd configuration directory found."
+    fi
 }
 
 # Remove nouveau blacklist configuration
@@ -394,6 +418,7 @@ main() {
     remove_binaries
     remove_service_files
     remove_config_files
+    remove_asusd_config
     remove_nouveau_blacklist
     remove_desktop_files
     remove_user_groups
