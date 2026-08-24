@@ -7,6 +7,26 @@ and this project follows Linux Mint release versioning with patch numbers.
 
 ## [Unreleased]
 
+### Added
+- `update-asus-linux.sh`: update an existing installation to the latest upstream release tag. The pinned tag is built from source, staged with upstream's own Makefile rules, wrapped in an `asusctl-ogc` `.deb` and installed with apt, so dpkg tracks the installed version, removes files dropped by upstream on upgrade, and makes rollback possible. Supports `--check`, `--tag`, `--rollback`, `--no-gui` and an optional notify-only weekly systemd timer (`--install-timer` / `--remove-timer`).
+- `make-dpkg.sh`: shared Bash library (sourced by both `update-asus-linux.sh` and `install-asus-linux.sh --dpkg`) providing staging, dependency resolution, .deb metadata with maintainer scripts, build, install, stale-GUI warning, user-service enablement, and cache pruning.
+- Installer: `--dpkg` flag that builds asusctl and installs it as the `asusctl-ogc` `.deb` package via apt, instead of raw file copy. Plain installer behavior is unchanged.
+- Uninstaller: remove the user-level `asus-linux-update-check` timer and service if present.
+- Uninstaller: warn when a running `rog-control-center` process is still on the previous binary after an update.
+- README: "Updating" section covering the update, rollback and package-removal workflow.
+
+### Changed
+- Uninstaller: detect whether the installation is the `asusctl-ogc` package or an unmanaged file-based one. Packaged installs are removed with `apt remove` so dpkg's database stays consistent, with an optional prompt to clear the rollback package cache; unmanaged installs keep the previous file-by-file removal.
+- Updater: do not enable or disable the static `asusd.service` (it is D-Bus activated and has no `[Install]` section).
+- Updater: use `asusctl info` for status reporting instead of the unsupported `--version` flag.
+
+### Fixed
+- Updater: install `asusd-user.service` explicitly. Upstream declares `install-data-asusd_user` as `.PHONY` but gives it no recipe, so `make install` silently skips the user unit.
+- Updater: `get_installed_version()` now checks the dpkg `Status` field for `install ok installed` instead of just the version string, so a residual `deinstall ok config-files` state (left by `apt remove` without `apt purge`) no longer causes a false "up to date" report.
+- Installer `--dpkg`: explicitly start and enable `asusd.service` and `asus-shutdown.service` after `apt install`, because the postinst upgrade branch uses `try-restart` which is a no-op when services are stopped (e.g. after an uninstall+reinstall cycle).
+- postinst: always run `systemctl enable asus-shutdown.service` before the fresh/upgrade branch, so the unit is enabled regardless of whether dpkg treats the install as fresh or an upgrade.
+- Tests: mock `notify-send` to prevent real desktop notifications during test runs (D-Bus bypasses stdout redirection).
+
 ## [22.3.3] - 2026-08-09
 
 ### Added

@@ -18,8 +18,9 @@
 #     https://raw.githubusercontent.com/andreas-glaser/asus-linux-mint/main/install-asus-linux.sh
 #   less install-asus-linux.sh
 #   chmod +x install-asus-linux.sh
-#   ./install-asus-linux.sh
-# 
+#   ./install-asus-linux.sh           # file-by-file install (default)
+#   ./install-asus-linux.sh --dpkg    # package as .deb, install via apt
+#
 # To use a custom build directory:
 #   ASUS_BUILD_DIR="/path/to/custom/dir" ./install-asus-linux.sh
 # 
@@ -72,9 +73,21 @@ UPDATE_FIRMWARE="${ASUS_UPDATE_FIRMWARE:-0}"
 RUST_TOOLCHAIN_BIN=""
 DETECTED_DISTRIBUTION=""
 
+# --dpkg: package asusctl as a .deb and install via apt instead of file-by-file.
+# When enabled, the shared packaging library make-dpkg.sh is sourced.
+USE_DPKG=0
+PKG_NAME="asusctl-ogc"
+CACHE_DIR="/var/cache/asus-linux-mint"
+# shellcheck disable=SC2034
+UPSTREAM_URL="https://github.com/OpenGamingCollective/asusctl"
+STAGE_DIR=""
+
 # Cleanup function for graceful error handling
 cleanup() {
     local exit_code=$?
+    if [ -n "$STAGE_DIR" ] && [ -d "$STAGE_DIR" ]; then
+        rm -rf "$STAGE_DIR"
+    fi
     if [ $exit_code -ne 0 ]; then
         print_error "Installation failed. You can try running the script again."
         print_error "Build directory: $BASE_DIR"
@@ -608,6 +621,73 @@ install_asusctl() {
     print_status "asusctl installed successfully."
 }
 
+# Install asusctl as a .deb package via the shared make-dpkg.sh library.
+# Builds the same pinned version as install_asusctl, but stages and packages
+# it into a .deb so dpkg owns the files from the first install.
+install_asusctl_dpkg() {
+    local normalized_unit_dir tmp_unit
+    local deb_path
+
+    print_status "Installing asusctl $ASUSCTL_VERSION (packaged as .deb)..."
+    prepare_source_checkout "asusctl-$ASUSCTL_VERSION" "$ASUSCTL_REPO" "$ASUSCTL_COMMIT" "$ASUSCTL_LOCK_SHA256"
+    install_verified_dependency_lock \
+        "asusctl" \
+        "asusctl-$ASUSCTL_VERSION-Cargo.lock" \
+        "$ASUSCTL_LOCK_SHA256" \
+        "$ASUSCTL_LOCK_URL" \
+        "$BASE_DIR/asusctl-$ASUSCTL_VERSION/Cargo.lock"
+
+    cd "$BASE_DIR/asusctl-$ASUSCTL_VERSION"
+    if [[ "$INSTALL_ROG_GUI" != "1" ]]; then
+        print_status "Skipping rog-control-center (GUI) because ASUS_INSTALL_ROG_GUI=0."
+    fi
+
+    print_status "Building asusctl (daemon + CLI) (this may take several minutes)..."
+    cargo_stable build --release --locked -p asusctl -p asusd -p asusd-user -p asus-shutdown
+    if [[ "$INSTALL_ROG_GUI" == "1" ]]; then
+        print_status "Building rog-control-center (GUI)..."
+        cargo_stable build --release --locked -p rog-control-center --features "rog-control-center/x11"
+    fi
+
+    # Normalize systemd unit files for Mint 22.3 / Ubuntu 24.04 (systemd 255)
+    # before staging so make-dpkg.sh's stage_install picks up the fixed units.
+    normalized_unit_dir="$BASE_DIR/asusctl-$ASUSCTL_VERSION/target/installer-units"
+    mkdir -p "$normalized_unit_dir"
+    for unit_file in data/asusd.service data/asus-shutdown.service; do
+        tmp_unit="$normalized_unit_dir/$(basename "$unit_file")"
+        prepare_supported_systemd_unit "$unit_file" "$tmp_unit"
+        cp "$tmp_unit" "$unit_file"
+    done
+
+    # Source the shared packaging library and use it to build + install the .deb
+    # shellcheck disable=SC2034
+    SRC_DIR="$BASE_DIR/asusctl-$ASUSCTL_VERSION"
+    # shellcheck source=make-dpkg.sh
+    source "$SCRIPT_DIR/make-dpkg.sh"
+
+    stage_install
+    write_package_metadata "$ASUSCTL_VERSION"
+
+    deb_path="$(build_deb "$ASUSCTL_VERSION")"
+    install_deb "$deb_path"
+    enable_user_service
+
+    # Safety net: the postinst runs as root during dpkg configure, but when
+    # upgrading from a deinstall ok config-files state, dpkg passes the old
+    # version as $2, so the postinst takes the "upgrade" branch and only
+    # try-restarts services that are already running. After an uninstall+
+    # reinstall cycle the services are stopped, so start them explicitly.
+    sudo systemctl restart asusd.service 2>/dev/null || true
+    sudo systemctl enable asus-shutdown.service 2>/dev/null || true
+    sudo systemctl restart asus-shutdown.service 2>/dev/null || true
+
+    warn_stale_gui "$ASUSCTL_VERSION"
+    prune_cache
+
+    cd "$BASE_DIR"
+    print_status "asusctl installed successfully (managed by apt)."
+}
+
 # Install supergfxctl
 install_supergfxctl() {
     print_warning "Installing optional supergfxctl for a specialised GPU workflow."
@@ -802,6 +882,17 @@ show_status() {
     echo "• Fan curve control depends on laptop model/firmware; inspect 'asusctl info --show-supported'."
     echo
     print_warning "Some GPU mode changes require a reboot to take effect."
+
+    if [ "$USE_DPKG" = "1" ]; then
+        echo
+        echo "=== MANAGED BY APT ==="
+        echo "• Installed version:  dpkg-query -W $PKG_NAME"
+        echo "• Remove everything:  sudo apt remove $PKG_NAME"
+        echo "• Update:             ./update-asus-linux.sh"
+        echo "• Roll back:          ./update-asus-linux.sh --rollback"
+        echo "• Cached packages:    $CACHE_DIR"
+        echo "• Your settings in /etc/asusd were preserved."
+    fi
     
     echo
     echo "=== NEXT STEPS ==="
@@ -816,9 +907,21 @@ show_status() {
 
 # Main installation flow
 main() {
+    # Parse command-line arguments
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            --dpkg)    USE_DPKG=1; shift ;;
+            --help|-h) echo "Usage: $(basename "$0") [--dpkg]"; exit 0 ;;
+            *)         print_error "Unknown option: $1"; exit 1 ;;
+        esac
+    done
+
     print_header
     print_status "Starting ASUS Linux tools installation for Linux Mint $SUPPORTED_MINT_VERSION / Ubuntu $SUPPORTED_UBUNTU_VERSION..."
     print_status "Script version: $SCRIPT_VERSION"
+    if [ "$USE_DPKG" = "1" ]; then
+        print_status "Mode: .deb packaging (apt-managed)"
+    fi
     echo
 
     validate_configuration
@@ -830,11 +933,17 @@ main() {
     else
         print_status "Skipping firmware updates (set ASUS_UPDATE_FIRMWARE=1 to enable)."
     fi
-    install_asusctl
+    if [ "$USE_DPKG" = "1" ]; then
+        install_asusctl_dpkg
+    else
+        install_asusctl
+    fi
     if [[ "$INSTALL_SUPERGFXCTL" == "1" ]]; then
         install_supergfxctl
     fi
-    configure_services
+    if [ "$USE_DPKG" = "0" ]; then
+        configure_services
+    fi
     
     if verify_installation; then
         show_status

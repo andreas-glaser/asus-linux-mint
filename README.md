@@ -95,6 +95,74 @@ Firmware flashing is independent of asusctl and is disabled by default:
 ASUS_UPDATE_FIRMWARE=1 ./install-asus-linux.sh
 ```
 
+## 🔄 Updating
+
+`update-asus-linux.sh` updates an existing installation to the latest **tagged release** of
+[asusctl](https://github.com/OpenGamingCollective/asusctl).
+
+Upstream publishes release tags but only ships Arch Linux binaries, so the script builds the
+pinned tag from source, then wraps the result in a `.deb` and installs it with apt. dpkg
+therefore owns the files, which gives you version tracking, clean upgrades, and rollback.
+
+```bash
+# See what's installed and what's available (changes nothing)
+./update-asus-linux.sh --check
+
+# Build and install the latest release
+./update-asus-linux.sh
+
+# Build a specific release
+./update-asus-linux.sh --tag 6.3.10
+
+# Go back to the previously installed version
+./update-asus-linux.sh --rollback
+```
+
+### Already installed with `install-asus-linux.sh`?
+
+**Run the updater directly. Do not uninstall first.** The first run converts your existing
+file-based install into the `asusctl-ogc` package: it removes the leftovers that upstream has
+since renamed, and dpkg takes ownership of the rest. Running `uninstall-asus-linux.sh` first
+would offer to delete your `/etc/asusd` settings, the build directory and the Rust toolchain,
+all of which the updater reuses.
+
+After the conversion:
+
+```bash
+dpkg-query -W asusctl-ogc          # which version is installed
+sudo apt remove asusctl-ogc        # remove everything the package owns
+```
+
+Your settings in `/etc/asusd` (fan curves, profiles, LED settings) are **not** part of the
+package and survive upgrades and removal.
+
+`uninstall-asus-linux.sh` detects which of the two layouts you have and removes it the right
+way, so it is safe to use either before or after converting.
+
+### Rolling back
+
+`--rollback` reinstalls a `.deb` from the local cache, so it only works once the updater has
+built at least one package. On your **first** update there is nothing cached yet; to go back to
+a specific earlier release, rebuild it by tag:
+
+```bash
+./update-asus-linux.sh --tag 6.3.8
+
+# Which release is the current install based on?
+git -C ~/.local/src/asus-linux/asusctl describe --tags
+```
+
+### Optional: weekly update check
+
+```bash
+# Notifies when a new release appears; never builds or installs on its own
+./update-asus-linux.sh --install-timer
+./update-asus-linux.sh --remove-timer
+```
+
+> **Note:** the update still compiles asusctl from source, so it needs the Rust toolchain and
+> build dependencies installed by `install-asus-linux.sh`, and it takes several minutes.
+
 ## 📦 What Gets Installed
 
 ### Core Components

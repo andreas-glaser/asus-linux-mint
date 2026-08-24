@@ -24,7 +24,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y shellcheck
-          shellcheck -x -S warning install-asus-linux.sh uninstall-asus-linux.sh tests/*.sh
+          shellcheck -x -S warning make-dpkg.sh install-asus-linux.sh uninstall-asus-linux.sh update-asus-linux.sh tests/*.sh
 
   syntax-check:
     name: Syntax Validation
@@ -40,9 +40,15 @@ jobs:
           
           echo "Checking uninstall script syntax..."
           bash -n uninstall-asus-linux.sh
-          
+
+          echo "Checking update script syntax..."
+          bash -n update-asus-linux.sh
+
+          echo "Checking make-dpkg.sh syntax..."
+          bash -n make-dpkg.sh
+
           echo "Making scripts executable..."
-          chmod +x install-asus-linux.sh uninstall-asus-linux.sh
+          chmod +x install-asus-linux.sh uninstall-asus-linux.sh update-asus-linux.sh
           
           echo "✅ All scripts have valid syntax"
 
@@ -115,6 +121,15 @@ jobs:
             echo "✅ Uninstall script has proper structure"
           fi
 
+          echo "Testing update script basic execution..."
+          chmod +x update-asus-linux.sh
+          ./update-asus-linux.sh --help > /dev/null
+          echo "✅ Update script help works"
+
+          if grep -q "SCRIPT_VERSION" update-asus-linux.sh; then
+            echo "✅ Update script contains version information"
+          fi
+
   test-installer:
     name: Installer Unit Tests
     runs-on: ubuntu-latest
@@ -139,6 +154,8 @@ jobs:
         run: |
           bash tests/test-installer.sh
           bash tests/test-uninstaller.sh
+          bash tests/test-update.sh
+          bash tests/test-dpkg.sh
 
   security-scan:
     name: Installer Security Contracts
