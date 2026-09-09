@@ -246,6 +246,27 @@ remove_asusd_config() {
     fi
 }
 
+# Restore power-profiles-daemon if the installer disabled it
+restore_power_profiles_daemon() {
+    if ! dpkg-query -W -f='${db:Status-Abbrev}' power-profiles-daemon 2>/dev/null | grep -q '^ii'; then
+        return 0
+    fi
+
+    if systemctl is-enabled --quiet power-profiles-daemon.service 2>/dev/null; then
+        return 0
+    fi
+
+    echo
+    print_status "power-profiles-daemon is installed but disabled."
+    print_status "The installer may have disabled it to avoid conflicts with asusd."
+    if prompt_yes_no "Re-enable power-profiles-daemon now that asusd is removed? (y/N): "; then
+        sudo systemctl enable --now power-profiles-daemon.service
+        print_status "✓ power-profiles-daemon re-enabled and started."
+    else
+        print_status "power-profiles-daemon left disabled."
+    fi
+}
+
 # Remove nouveau blacklist configuration
 remove_nouveau_blacklist() {
     print_status "Checking for nouveau blacklist configuration..."
@@ -451,6 +472,7 @@ main() {
     remove_config_files
     remove_asusd_config
     remove_nouveau_blacklist
+    restore_power_profiles_daemon
     remove_desktop_files
     remove_build_dirs
     

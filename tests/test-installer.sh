@@ -26,11 +26,11 @@ assert_false() {
     fi
 }
 
-[[ "$ASUSCTL_VERSION" == "6.3.11" ]] || fail "unexpected asusctl version"
+[[ "$ASUSCTL_VERSION" == "6.4.0" ]] || fail "unexpected asusctl version"
 [[ "$SCRIPT_VERSION" == "22.3.3" ]] || fail "unexpected installer release version"
 [[ "$SUPPORTED_MINT_VERSION" == "22.3" ]] || fail "unexpected supported Mint release"
 [[ "$SUPPORTED_UBUNTU_VERSION" == "24.04" ]] || fail "unexpected supported Ubuntu release"
-[[ "$ASUSCTL_COMMIT" == "4d8a45b3bcd36f0434a9e802ad84fc842b13ea63" ]] || fail "unexpected asusctl commit"
+[[ "$ASUSCTL_COMMIT" == "e6c1469ccf2a745c6a1aff763852df90066c6baa" ]] || fail "unexpected asusctl commit"
 [[ "$SUPERGFXCTL_VERSION" == "5.2.7" ]] || fail "unexpected supergfxctl version"
 [[ "$SUPERGFXCTL_COMMIT" == "a86383e1b2f32d4f87f8dd47f0d6b06690877c64" ]] || fail "unexpected supergfxctl commit"
 [[ "$SUPERGFXCTL_MIN_KERNEL" == "6.1" ]] || fail "unexpected supergfxctl kernel threshold"
@@ -86,10 +86,6 @@ assert_false "build directories outside the account home must be rejected" valid
 BASE_DIR="$original_base_dir"
 assert_true "default configuration must be valid" validate_configuration
 
-expected_lock_hash="$ASUSCTL_LOCK_SHA256"
-actual_lock_hash=$(sha256sum "$PROJECT_DIR/assets/asusctl-$ASUSCTL_VERSION-Cargo.lock" | awk '{print $1}')
-[[ "$actual_lock_hash" == "$expected_lock_hash" ]] || fail "asusctl dependency-lock hash mismatch"
-
 expected_lock_hash="$SUPERGFXCTL_LOCK_SHA256"
 actual_lock_hash=$(sha256sum "$PROJECT_DIR/assets/supergfxctl-$SUPERGFXCTL_VERSION-Cargo.lock" | awk '{print $1}')
 [[ "$actual_lock_hash" == "$expected_lock_hash" ]] || fail "supergfxctl dependency-lock hash mismatch"
@@ -97,24 +93,32 @@ actual_lock_hash=$(sha256sum "$PROJECT_DIR/assets/supergfxctl-$SUPERGFXCTL_VERSI
 test_root=$(mktemp -d)
 trap 'rm -rf "$test_root"' EXIT
 
-lock_destination="$test_root/Cargo.lock"
-assert_true "bundled lock must pass verification" \
-    install_verified_dependency_lock \
-        "asusctl" \
-        "asusctl-$ASUSCTL_VERSION-Cargo.lock" \
-        "$ASUSCTL_LOCK_SHA256" \
-        "https://example.invalid/unused" \
-        "$lock_destination"
-cmp -s "$PROJECT_DIR/assets/asusctl-$ASUSCTL_VERSION-Cargo.lock" "$lock_destination" \
-    || fail "verified lock was not copied exactly"
-
-assert_false "an incorrect lock hash must be rejected" \
-    install_verified_dependency_lock \
-        "asusctl" \
-        "asusctl-$ASUSCTL_VERSION-Cargo.lock" \
-        "0000000000000000000000000000000000000000000000000000000000000000" \
-        "https://example.invalid/unused" \
-        "$lock_destination"
+# asusctl 6.4.0+ ships Cargo.lock in the upstream repo; the bundled lock asset
+# and install_verified_dependency_lock call are no longer used for asusctl.
+# re-enable if the lock is dropped upstream again.
+#
+# expected_lock_hash="$ASUSCTL_LOCK_SHA256"
+# actual_lock_hash=$(sha256sum "$PROJECT_DIR/assets/asusctl-$ASUSCTL_VERSION-Cargo.lock" | awk '{print $1}')
+# [[ "$actual_lock_hash" == "$expected_lock_hash" ]] || fail "asusctl dependency-lock hash mismatch"
+#
+# lock_destination="$test_root/Cargo.lock"
+# assert_true "bundled lock must pass verification" \
+#     install_verified_dependency_lock \
+#         "asusctl" \
+#         "asusctl-$ASUSCTL_VERSION-Cargo.lock" \
+#         "$ASUSCTL_LOCK_SHA256" \
+#         "https://example.invalid/unused" \
+#         "$lock_destination"
+# cmp -s "$PROJECT_DIR/assets/asusctl-$ASUSCTL_VERSION-Cargo.lock" "$lock_destination" \
+#     || fail "verified lock was not copied exactly"
+#
+# assert_false "an incorrect lock hash must be rejected" \
+#     install_verified_dependency_lock \
+#         "asusctl" \
+#         "asusctl-$ASUSCTL_VERSION-Cargo.lock" \
+#         "0000000000000000000000000000000000000000000000000000000000000000" \
+#         "https://example.invalid/unused" \
+#         "$lock_destination"
 
 unit_source="$test_root/upstream.service"
 unit_destination="$test_root/supported.service"
@@ -163,21 +167,25 @@ expected_commit=$(git -C "$upstream" rev-parse HEAD)
 
 BASE_DIR="$test_root/build"
 mkdir -p "$BASE_DIR"
-prepare_source_checkout "component" "$upstream" "$expected_commit" "$ASUSCTL_LOCK_SHA256"
+prepare_source_checkout "component" "$upstream" "$expected_commit"
 actual_commit=$(git -C "$BASE_DIR/component" rev-parse HEAD)
 [[ "$actual_commit" == "$expected_commit" ]] || fail "pinned checkout selected the wrong commit"
 
-install -m 0644 "$PROJECT_DIR/assets/asusctl-$ASUSCTL_VERSION-Cargo.lock" "$BASE_DIR/component/Cargo.lock"
-assert_true "a rerun must accept the exact installer-supplied lock" \
-    prepare_source_checkout "component" "$upstream" "$expected_commit" "$ASUSCTL_LOCK_SHA256"
-
-printf 'tampered lock\n' > "$BASE_DIR/component/Cargo.lock"
-assert_false "a modified installer lock must not be overwritten" \
-    prepare_source_checkout "component" "$upstream" "$expected_commit" "$ASUSCTL_LOCK_SHA256"
-install -m 0644 "$PROJECT_DIR/assets/asusctl-$ASUSCTL_VERSION-Cargo.lock" "$BASE_DIR/component/Cargo.lock"
+# asusctl 6.4.0+ ships Cargo.lock in the upstream repo; the bundled lock asset
+# and install_verified_dependency_lock call are no longer used for asusctl.
+# re-enable if the lock is dropped upstream again.
+#
+# install -m 0644 "$PROJECT_DIR/assets/asusctl-$ASUSCTL_VERSION-Cargo.lock" "$BASE_DIR/component/Cargo.lock"
+# assert_true "a rerun must accept the exact installer-supplied lock" \
+#     prepare_source_checkout "component" "$upstream" "$expected_commit" "$ASUSCTL_LOCK_SHA256"
+#
+# printf 'tampered lock\n' > "$BASE_DIR/component/Cargo.lock"
+# assert_false "a modified installer lock must not be overwritten" \
+#     prepare_source_checkout "component" "$upstream" "$expected_commit" "$ASUSCTL_LOCK_SHA256"
+# install -m 0644 "$PROJECT_DIR/assets/asusctl-$ASUSCTL_VERSION-Cargo.lock" "$BASE_DIR/component/Cargo.lock"
 
 touch "$BASE_DIR/component/local-change"
 assert_false "dirty checkouts must not be overwritten" \
-    prepare_source_checkout "component" "$upstream" "$expected_commit" "$ASUSCTL_LOCK_SHA256"
+    prepare_source_checkout "component" "$upstream" "$expected_commit"
 
 echo "Installer unit tests passed."
