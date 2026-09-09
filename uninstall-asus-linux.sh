@@ -97,7 +97,7 @@ validate_build_directory() {
 confirm_uninstall() {
     print_warning "This will remove files managed by the ASUS Linux tools installer:"
     echo "  • asusctl binaries and optional/legacy supergfxctl binaries"
-    echo "  • All systemd services (asusd, asus-shutdown, asusd-user, and optional supergfxd)"
+    echo "  • All systemd services (asusd, asus-shutdown, and optional supergfxd)"
     echo "  • Configuration files and udev rules"
     echo "  • Desktop files and icons"
     echo "  • asusd runtime configuration directory (optional)"
@@ -116,13 +116,6 @@ confirm_uninstall() {
 stop_services() {
     print_status "Stopping and disabling ASUS services..."
     
-    # Stop and disable asusd-user service (user-level)
-    if systemctl --user cat asusd-user.service &> /dev/null; then
-        systemctl --user stop asusd-user.service 2>/dev/null || true
-        systemctl --user disable asusd-user.service 2>/dev/null || true
-        print_status "✓ asusd-user.service stopped and disabled."
-    fi
-
     if systemctl cat asus-shutdown.service &> /dev/null; then
         sudo systemctl stop asus-shutdown.service 2>/dev/null || true
         sudo systemctl disable asus-shutdown.service 2>/dev/null || true
@@ -155,7 +148,6 @@ remove_binaries() {
     local binaries=(
         "/usr/bin/asusctl"
         "/usr/bin/asusd"
-        "/usr/bin/asusd-user"
         "/usr/bin/asus-shutdown"
         "/usr/bin/rog-control-center"
         "/usr/bin/supergfxctl"
@@ -178,7 +170,6 @@ remove_service_files() {
         "/usr/lib/systemd/system/asusd.service"
         "/usr/lib/systemd/system/asus-shutdown.service"
         "/usr/lib/systemd/system/supergfxd.service"
-        "/usr/lib/systemd/user/asusd-user.service"
         "/usr/lib/systemd/system-preset/supergfxd.preset"
     )
     
@@ -362,7 +353,6 @@ verify_removal() {
     local binary_paths=(
         "/usr/bin/asusctl"
         "/usr/bin/asusd"
-        "/usr/bin/asusd-user"
         "/usr/bin/asus-shutdown"
         "/usr/bin/supergfxctl"
         "/usr/bin/supergfxd"

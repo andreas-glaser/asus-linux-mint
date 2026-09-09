@@ -533,7 +533,7 @@ install_asusctl() {
     fi
 
     print_status "Building asusctl (daemon + CLI) (this may take several minutes)..."
-    cargo_stable build --release --locked -p asusctl -p asusd -p asusd-user -p asus-shutdown
+    cargo_stable build --release --locked -p asusctl -p asusd -p asus-shutdown
     if [[ "$INSTALL_ROG_GUI" == "1" ]]; then
         print_status "Building rog-control-center (GUI)..."
         # Linux Mint desktops commonly run X11; enable X11 backend to avoid runtime panics.
@@ -543,7 +543,6 @@ install_asusctl() {
     print_status "Installing asusctl and asusd..."
     sudo install -D -m 0755 "./target/release/asusctl" "/usr/bin/asusctl"
     sudo install -D -m 0755 "./target/release/asusd" "/usr/bin/asusd"
-    sudo install -D -m 0755 "./target/release/asusd-user" "/usr/bin/asusd-user"
     sudo install -D -m 0755 "./target/release/asus-shutdown" "/usr/bin/asus-shutdown"
 
     # Install system integration files (udev, dbus, systemd, data assets)
@@ -557,7 +556,6 @@ install_asusctl() {
     prepare_supported_systemd_unit "./data/asus-shutdown.service" "$normalized_shutdown_unit"
     sudo install -D -m 0644 "$normalized_asusd_unit" "/usr/lib/systemd/system/asusd.service"
     sudo install -D -m 0644 "$normalized_shutdown_unit" "/usr/lib/systemd/system/asus-shutdown.service"
-    sudo install -D -m 0644 "./data/asusd-user.service" "/usr/lib/systemd/user/asusd-user.service"
     sudo install -D -m 0644 "./rog-aura/data/aura_support.ron" "/usr/share/asusd/aura_support.ron"
 
     if [ -d "./rog-anime/data/anime" ]; then
@@ -674,17 +672,6 @@ configure_services() {
     elif command -v supergfxctl &> /dev/null; then
         print_warning "Existing supergfxctl installation detected and left unchanged."
         print_warning "It is no longer installed by default; use ASUS_INSTALL_SUPERGFXCTL=1 to manage it here."
-    fi
-    
-    # Enable asusd-user service for current user (user-level)
-    systemctl --user daemon-reload 2>/dev/null || true
-    if systemctl --user cat asusd-user.service &> /dev/null; then
-        systemctl --user enable asusd-user.service 2>/dev/null || true
-        systemctl --user restart asusd-user.service 2>/dev/null || true
-        print_status "asusd-user.service enabled and restarted for current user."
-    else
-        print_warning "asusd-user.service not available in the current session. This is optional but recommended."
-        print_warning "After reboot/login, you can enable it with: systemctl --user enable --now asusd-user.service"
     fi
     
     # Mint users invoking this installer already have an administrative group

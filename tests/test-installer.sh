@@ -53,7 +53,6 @@ fi
 for managed_path in \
     /usr/bin/asusctl \
     /usr/bin/asusd \
-    /usr/bin/asusd-user \
     /usr/bin/asus-shutdown \
     /usr/bin/rog-control-center \
     /usr/bin/supergfxctl \
@@ -61,7 +60,6 @@ for managed_path in \
     /usr/lib/systemd/system/asusd.service \
     /usr/lib/systemd/system/asus-shutdown.service \
     /usr/lib/systemd/system/supergfxd.service \
-    /usr/lib/systemd/user/asusd-user.service \
     /usr/share/applications/org.opengamingcollective.rog-control-center.desktop \
     /usr/share/metainfo/org.opengamingcollective.rog-control-center.metainfo.xml; do
     grep -Fq "\"$managed_path\"" "$PROJECT_DIR/uninstall-asus-linux.sh" \
